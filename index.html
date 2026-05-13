@@ -1,33 +1,69 @@
 <body></body>
 <script src="https://cdn.jsdelivr.net/gh/netizenorg/netnet-standard-library/build/nn.min.js"></script>
+<style>
+  body { margin: 0; background: #04040f; overflow: hidden; }
+  #feed { position: fixed; inset: 0; }
+  #input-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 10; }
+  input { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25); color: #fff; padding: 8px 14px; border-radius: 999px; font-size: 14px; width: 200px; outline: none; }
+  button { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: #fff; padding: 8px 16px; border-radius: 999px; font-size: 13px; cursor: pointer; }
+  .htag { position: absolute; font-family: monospace; white-space: nowrap; pointer-events: none; user-select: none; transition: opacity 6s linear; }
+</style>
+<div id="feed"></div>
+<div id="input-bar">
+  <input id="hashtag-input" type="text" placeholder="add your hashtag..." maxlength="40" />
+  <button id="add-btn">post</button>
+</div>
 <script>
   /* global nn */
-  
-  document.body.style.background = '#04040f'
+  const feed = document.getElementById('feed')
+  const input = document.getElementById('hashtag-input')
+  const hashtags = [
+    '#YOLO','#Selfie','#TBT','#NoFilter','#FOMO','#OOTD','#Blessed','#OnFleek',
+    '#IceBucketChallenge','#BlackLivesMatter','#MeToo','#LoveWins','#Ferguson',
+    '#OccupyWallStreet','#ArabSpring','#GunControl','#ClimateChange','#MarchForOurLives',
+    '#Brexit','#FakeNews','#MAGA','#Resistance','#NeverAgain','#TimesUp',
+    '#Kony2012','#BreakTheInternet','#ALS','#PokemonGo','#Harambe',
+    '#HarlemShake','#InMyFeelings','#HandsUpDontShoot','#SayHerName',
+  ]
+  const colors = ['#ff6eb4','#a78bfa','#60a5fa','#34d399','#fbbf24','#f87171','#e879f9','#38bdf8','#4ade80','#fb923c']
+  let count = 0, tagIndex = 0
 
-  function draw () {
-    if (nn.mouseDown) {
-    let x = nn.mouseX
-    let y = nn.mouseY
-    let hue = nn.random(360)
-    let star = nn.create('div')
-    star.content('⭐️', '✨', '💫')
-      .css('user-select', 'none')
-      .css('font-size', nn.random(10, 30) + 'px')
-      .css('transition', 'top 3s ease-in, opacity 3s ease-in')
-      .hueRotate(hue)
-      .position(x, y)
-      .addTo('body')
-    
-    setTimeout(() => {
-      star.css('top', y + 200 + 'px')
-      star.css('opacity', '0')
-    }, 10)
-    }
+  function spawnTag(text) {
+    const el = document.createElement('span')
+    el.className = 'htag'
+    el.style.fontSize = (11 + Math.random() * 18) + 'px'
+    el.style.color = colors[Math.floor(Math.random() * colors.length)]
+    el.style.opacity = '0.9'
+    el.style.left = Math.random() * (window.innerWidth - 180) + 'px'
+    el.style.top = Math.random() * (window.innerHeight - 60) + 'px'
+    el.textContent = text.startsWith('#') ? text : '#' + text
+    feed.appendChild(el)
+    count++
+    setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 6100) }, 800)
   }
-  
-  nn.on('mousemove', draw)
-  nn.on('dblclick', () => {
-    document.body.innerHTML =''
+
+  function autoSpawn() {
+    spawnTag(hashtags[tagIndex % hashtags.length])
+    tagIndex++
+    setTimeout(autoSpawn, Math.max(100, 600 - Math.min(count * 3, 500)))
+  }
+
+  function addCustom() {
+    const val = input.value.trim()
+    if (!val) return
+    spawnTag(val)
+    spawnTag(val)
+    spawnTag(val)
+    spawnTag(val)
+    spawnTag(val)
+    input.value = ''
+  }
+
+  document.getElementById('add-btn').addEventListener('click', addCustom)
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') addCustom()
   })
+
+  nn.on('dblclick', () => { feed.innerHTML = ''; count = 0; tagIndex = 0 })
+  autoSpawn()
 </script>
