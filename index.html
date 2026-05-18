@@ -1,69 +1,122 @@
 <body></body>
 <script src="https://cdn.jsdelivr.net/gh/netizenorg/netnet-standard-library/build/nn.min.js"></script>
 <style>
-  body { margin: 0; background: #04040f; overflow: hidden; }
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Anton&display=swap');
+
+  body { margin: 0; background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 40%, #fce4ec 70%, #fff0f6 100%); overflow: hidden; font-family: 'Share Tech Mono', monospace; cursor: crosshair; }
+  body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse at center, transparent 40%, rgba(200,80,120,0.15) 100%); pointer-events: none; z-index: 99; }
   #feed { position: fixed; inset: 0; }
-  #input-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 10; }
-  input { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25); color: #fff; padding: 8px 14px; border-radius: 999px; font-size: 14px; width: 200px; outline: none; }
-  button { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: #fff; padding: 8px 16px; border-radius: 999px; font-size: 13px; cursor: pointer; }
-  .htag { position: absolute; font-family: monospace; white-space: nowrap; pointer-events: none; user-select: none; transition: opacity 6s linear; }
+  #header { position: fixed; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; z-index: 50; border-bottom: 1px solid rgba(232,64,122,0.2); background: linear-gradient(to bottom, rgba(252,228,236,0.9), transparent); }
+  #title { font-family: 'Anton', sans-serif; font-size: 22px; letter-spacing: 6px; color: #e8407a; text-transform: uppercase; }
+  #counter { font-size: 11px; color: rgba(100,0,40,0.4); letter-spacing: 2px; }
+  #counter span { color: #e8407a; font-size: 13px; }
+  .htag { position: absolute; white-space: nowrap; pointer-events: none; user-select: none; font-family: 'Share Tech Mono', monospace; font-weight: 700; letter-spacing: 1px; }
+  .htag.serious { color: #1a0010 !important; font-size: 18px !important; }
+  #input-bar { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); display: flex; gap: 0; z-index: 50; background: rgba(255,255,255,0.6); border: 1px solid rgba(232,64,122,0.4); border-radius: 999px; overflow: hidden; backdrop-filter: blur(10px); box-shadow: 0 4px 20px rgba(232,64,122,0.15); }
+  input { background: transparent; border: none; color: #1a0010; padding: 10px 18px; font-size: 13px; font-family: 'Share Tech Mono', monospace; width: 220px; outline: none; letter-spacing: 1px; }
+  input::placeholder { color: rgba(100,0,40,0.35); }
+  button { background: #e8407a; border: none; color: #fff; padding: 10px 20px; font-size: 12px; font-family: 'Anton', sans-serif; letter-spacing: 2px; cursor: pointer; text-transform: uppercase; }
+  #hint { position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%); font-size: 10px; color: rgba(100,0,40,0.3); letter-spacing: 2px; z-index: 50; text-transform: uppercase; }
+  #year { position: fixed; bottom: 28px; right: 28px; font-family: 'Anton', sans-serif; font-size: 11px; letter-spacing: 4px; color: rgba(100,0,40,0.15); z-index: 50; text-transform: uppercase; }
 </style>
-<div id="feed"></div>
-<div id="input-bar">
-  <input id="hashtag-input" type="text" placeholder="add your hashtag..." maxlength="40" />
-  <button id="add-btn">post</button>
+
+<div id="header">
+  <div id="title">#Trending</div>
+  <div id="counter"><span id="count-num">0</span> posts</div>
 </div>
+<div id="feed"></div>
+<div id="hint">double click to clear · add your hashtag below</div>
+<div id="input-bar">
+  <input id="hashtag-input" type="text" placeholder="what's trending for you?" maxlength="40" />
+  <button id="add-btn">Post</button>
+</div>
+<div id="year">2010 — 2019</div>
+
 <script>
   /* global nn */
   const feed = document.getElementById('feed')
   const input = document.getElementById('hashtag-input')
-  const hashtags = [
-    '#YOLO','#Selfie','#TBT','#NoFilter','#FOMO','#OOTD','#Blessed','#OnFleek',
-    '#IceBucketChallenge','#BlackLivesMatter','#MeToo','#LoveWins','#Ferguson',
-    '#OccupyWallStreet','#ArabSpring','#GunControl','#ClimateChange','#MarchForOurLives',
-    '#Brexit','#FakeNews','#MAGA','#Resistance','#NeverAgain','#TimesUp',
-    '#Kony2012','#BreakTheInternet','#ALS','#PokemonGo','#Harambe',
-    '#HarlemShake','#InMyFeelings','#HandsUpDontShoot','#SayHerName',
-  ]
-  const colors = ['#ff6eb4','#a78bfa','#60a5fa','#34d399','#fbbf24','#f87171','#e879f9','#38bdf8','#4ade80','#fb923c']
-  let count = 0, tagIndex = 0
+  const countEl = document.getElementById('count-num')
 
-  function spawnTag(text) {
+  const trivialTags = [
+    '#YOLO','#Selfie','#TBT','#NoFilter','#FOMO','#OOTD','#Blessed','#OnFleek',
+    '#Harambe','#PokemonGo','#HarlemShake','#Kony2012','#BreakTheInternet',
+    '#IceBucketChallenge','#VSCO','#GirlBoss','#Hustle','#GoodVibes',
+    '#Wanderlust','#Adulting','#Bae','#Squad','#Slay','#Goals','#Basic',
+    '#Aesthetic','#Brunch','#InMyFeelings','#FitFam','#GlowUp',
+    '#Yaas','#Iconic','#Periodt','#Lewk','#Snatched','#TFW','#FML',
+  ]
+
+  const seriousTags = [
+    '#BlackLivesMatter','#MeToo','#LoveWins','#Ferguson',
+    '#HandsUpDontShoot','#SayHerName','#OccupyWallStreet',
+    '#NeverAgain','#TimesUp','#Resistance','#NoDAPL',
+    '#ICantBreathe','#MarchForOurLives','#GunControl',
+    '#ClimateChange','#BringBackOurGirls','#JeSuisCharlie',
+    '#YesAllWomen','#PoliceBrutality','#DACA','#WomensMarch',
+  ]
+
+  const colors = ['#e8407a','#7c3aed','#0ea5e9','#d97706','#dc2626','#c026d3','#0284c7','#059669','#ea580c']
+
+  let totalCount = 0, tagIndex = 0, allTags = []
+
+  for (let i = 0; i < Math.max(trivialTags.length, seriousTags.length); i++) {
+    if (i < trivialTags.length) allTags.push({ text: trivialTags[i], type: 'trivial' })
+    if (i < seriousTags.length) allTags.push({ text: seriousTags[i], type: 'serious' })
+  }
+
+  function spawnTag(text, type = 'trivial') {
     const el = document.createElement('span')
-    el.className = 'htag'
-    el.style.fontSize = (11 + Math.random() * 18) + 'px'
-    el.style.color = colors[Math.floor(Math.random() * colors.length)]
-    el.style.opacity = '0.9'
-    el.style.left = Math.random() * (window.innerWidth - 180) + 'px'
-    el.style.top = Math.random() * (window.innerHeight - 60) + 'px'
+    el.className = 'htag ' + type
+    el.style.fontSize = (type === 'serious' ? 16 + Math.random() * 10 : 10 + Math.random() * 16) + 'px'
+    if (type === 'trivial') el.style.color = colors[Math.floor(Math.random() * colors.length)]
+    const startX = Math.random() * (window.innerWidth - 200)
+    el.style.left = startX + 'px'
+    el.style.top = '-40px'
+    el.style.opacity = '0'
     el.textContent = text.startsWith('#') ? text : '#' + text
     feed.appendChild(el)
-    count++
-    setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 6100) }, 800)
+    totalCount++
+    countEl.textContent = totalCount
+    requestAnimationFrame(() => {
+      el.style.transition = 'opacity 0.4s ease'
+      el.style.opacity = type === 'serious' ? '1' : (0.6 + Math.random() * 0.4).toString()
+    })
+    const duration = type === 'serious' ? 6000 + Math.random() * 3000 : 4000 + Math.random() * 4000
+    const fallDistance = window.innerHeight + 60
+    const startTime = performance.now()
+    function fall(now) {
+      const elapsed = now - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      const eased = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress
+      el.style.top = (-40 + fallDistance * eased) + 'px'
+      if (progress < 1) { requestAnimationFrame(fall) } else {
+        el.style.transition = 'opacity 1s ease'
+        el.style.opacity = '0'
+        setTimeout(() => el.remove(), 1100)
+      }
+    }
+    setTimeout(() => { el.style.transition = 'opacity 2s ease'; el.style.opacity = '0' }, duration - 2000)
+    requestAnimationFrame(fall)
   }
 
   function autoSpawn() {
-    spawnTag(hashtags[tagIndex % hashtags.length])
+    const tag = allTags[tagIndex % allTags.length]
+    spawnTag(tag.text, tag.type)
     tagIndex++
-    setTimeout(autoSpawn, Math.max(100, 600 - Math.min(count * 3, 500)))
+    setTimeout(autoSpawn, Math.max(80, 500 - Math.min(totalCount * 2, 420)))
   }
 
   function addCustom() {
     const val = input.value.trim()
     if (!val) return
-    spawnTag(val)
-    spawnTag(val)
-    spawnTag(val)
-    spawnTag(val)
-    spawnTag(val)
+    for (let i = 0; i < 6; i++) setTimeout(() => spawnTag(val, 'trivial'), i * 80)
     input.value = ''
   }
 
   document.getElementById('add-btn').addEventListener('click', addCustom)
-  input.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') addCustom()
-  })
+  input.addEventListener('keydown', function (e) { if (e.key === 'Enter') addCustom() })
+  nn.on('dblclick', () => { feed.innerHTML = ''; totalCount = 0; tagIndex = 0; countEl.textContent = '0' })
 
-  nn.on('dblclick', () => { feed.innerHTML = ''; count = 0; tagIndex = 0 })
   autoSpawn()
 </script>
